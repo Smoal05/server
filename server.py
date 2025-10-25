@@ -1,17 +1,33 @@
-# server.py
+# server.py (مُحدَّث مع CORS)
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import Optional, Dict
 import threading
 
+# إضافة CORS
+from fastapi.middleware.cors import CORSMiddleware
+
 app = FastAPI()
+
+# --- CORS middleware ---
+# أثناء التطوير: سمحنا لكل الأصول حتى لا تواجه مشاكل عند التجريب من الهاتف أو من استضافة ثابتة
+# لاحقًا في الإنتاج غيّر allow_origins إلى قائمة النطاقات الموثوقة فقط، مثلاً:
+# allow_origins=["https://dashboard.example.com"]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],       # للتطوير: اترك "*" أو ضع قائمة محددة للإنتاج
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+# ------------------------
 
 lock = threading.Lock()
 # مخزن الغرف في الذاكرة فقط: rooms[name] = "max/current"  مثل "6/1"
 rooms: Dict[str, str] = {}
 
 class RoomRequest(BaseModel):
-    action: str                 # "find", "create", "join", "leave"
+    action: str                 # "find", "create", "join", "leave", "delete"
     room_name: Optional[str] = None
     players: Optional[str] = None  # مثل "6/1"
 
@@ -90,6 +106,22 @@ def handle_room(req: RoomRequest):
             else:
                 rooms[req.room_name] = f"{max_p}/{cur}"
         return {"left": True, "room_name": req.room_name, "current": cur}
+
+    # DELETE -> حذف الغرفة صراحة، أو حذف أول غرفة موجودة مهما كانت حالتها لو ما ذُكر اسم
+    elif action == "delete":
+        with lock:
+            # لو ذكر اسم الغرفة: نحذفها مباشرة
+            if req.room_name:
+                if req.room_name not in rooms:
+                    return {"error": "room_not_found"}
+                del rooms[req.room_name]
+                return {"deleted": True, "room_name": req.room_name}
+            # لو ما ذكرش اسم: نحذف أول غرفة موجودة مهما كانت حالتها
+            if not rooms:
+                return {"error": "no_rooms"}
+            first_room = next(iter(rooms))
+            del rooms[first_room]
+            return {"deleted": True, "room_name": first_room}
 
     else:
         return {"error": "unknown action"}
