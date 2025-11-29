@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة تحكم السيرفر - نظام الإدارة</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- شريط التنقل -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <i class="fas fa-server"></i>
+                <span>نظام إدارة السيرفر</span>
+            </div>
+            <div class="nav-links">
+                <a href="#overview" class="nav-link active">نظرة عامة</a>
+                <a href="#rooms" class="nav-link">إدارة الغرف</a>
+                <a href="#mcs" class="nav-link">نظام MCS</a>
+                <a href="#logs" class="nav-link">سجلات النظام</a>
+                <a href="#analytics" class="nav-link">التحليلات</a>
+            </div>
+            <div class="nav-actions">
+                <button class="btn btn-refresh" onclick="refreshAll()">
+                    <i class="fas fa-sync-alt"></i> تحديث
+                </button>
+                <span class="status-indicator" id="statusIndicator"></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- المحتوى الرئيسي -->
+    <div class="container">
+        <!-- نظرة عامة -->
+        <section id="overview" class="section active">
+            <div class="section-header">
+                <h2><i class="fas fa-tachometer-alt"></i> نظرة عامة على النظام</h2>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-network-wired"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="uptime">--</h3>
+                        <p>مدة التشغيل</p>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-door-open"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="activeRooms">0</h3>
+                        <p>الغرف النشطة</p>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-exchange-alt"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="totalRequests">0</h3>
+                        <p>إجمالي الطلبات</p>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-memory"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="memoryUsage">-- MB</h3>
+                        <p>استخدام الذاكرة</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- مخططات سريعة -->
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <h4>نشاط الطلبات خلال الوقت</h4>
+                    <canvas id="requestsChart"></canvas>
+                </div>
+                <div class="chart-card">
+                    <h4>توزيع أنواع الطلبات</h4>
+                    <canvas id="methodsChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- إدارة الغرف -->
+        <section id="rooms" class="section">
+            <div class="section-header">
+                <h2><i class="fas fa-gamepad"></i> إدارة الغرف</h2>
+                <button class="btn btn-primary" onclick="fetchRooms()">
+                    <i class="fas fa-sync"></i> تحديث الغرف
+                </button>
+            </div>
+            
+            <div class="rooms-container">
+                <div class="rooms-list" id="roomsList">
+                    <!-- سيتم ملؤها بالبيانات -->
+                </div>
+                
+                <div class="room-actions">
+                    <h4>إجراءات سريعة</h4>
+                    <button class="btn btn-success" onclick="createSampleRoom()">
+                        <i class="fas fa-plus"></i> إنشاء غرفة تجريبية
+                    </button>
+                    <button class="btn btn-danger" onclick="clearAllRooms()">
+                        <i class="fas fa-trash"></i> مسح جميع الغرف
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- نظام MCS -->
+        <section id="mcs" class="section">
+            <div class="section-header">
+                <h2><i class="fas fa-cogs"></i> نظام إدارة المحتوى (MCS)</h2>
+            </div>
+            
+            <div class="mcs-tabs">
+                <div class="tab-buttons">
+                    <button class="tab-btn active" onclick="openMcTab('popup')">النافذة المنبثقة</button>
+                    <button class="tab-btn" onclick="openMcTab('news')">الأخبار</button>
+                    <button class="tab-btn" onclick="openMcTab('downloads')">التحميلات</button>
+                    <button class="tab-btn" onclick="openMcTab('variables')">المتغيرات</button>
+                </div>
+                
+                <div id="popup" class="tab-content active">
+                    <h4>إدارة النافذة المنبثقة</h4>
+                    <div class="mcs-form">
+                        <input type="text" id="popupImage" placeholder="رابط الصورة" class="form-input">
+                        <textarea id="popupText" placeholder="نص النافذة" class="form-textarea"></textarea>
+                        <select id="popupStatus" class="form-select">
+                            <option value="on">مفعل</option>
+                            <option value="off">معطل</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="updatePopup()">حفظ التغييرات</button>
+                    </div>
+                </div>
+                
+                <div id="news" class="tab-content">
+                    <h4>إدارة الأخبار</h4>
+                    <div id="newsList"></div>
+                </div>
+                
+                <!-- باقي تبويبات MCS -->
+            </div>
+        </section>
+
+        <!-- سجلات النظام -->
+        <section id="logs" class="section">
+            <div class="section-header">
+                <h2><i class="fas fa-clipboard-list"></i> سجلات النظام</h2>
+                <div class="log-controls">
+                    <input type="text" id="logSearch" placeholder="بحث في السجلات..." class="form-input">
+                    <button class="btn btn-secondary" onclick="clearLogs()">مسح السجلات</button>
+                </div>
+            </div>
+            
+            <div class="logs-container">
+                <div class="logs-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>الوقت</th>
+                                <th>الطريقة</th>
+                                <th>المسار</th>
+                                <th>IP</th>
+                                <th>الحالة</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logsTable">
+                            <!-- سيتم ملؤها بالبيانات -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- التذييل -->
+    <footer class="footer">
+        <div class="footer-content">
+            <p>© 2024 نظام إدارة السيرفر. جميع الحقوق محفوظة.</p>
+            <p id="serverTime">--</p>
+        </div>
+    </footer>
+
+    <!-- نافذة التحميل -->
+    <div id="loading" class="loading-overlay">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>جاري التحميل...</p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>
